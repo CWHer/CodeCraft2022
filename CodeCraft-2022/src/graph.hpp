@@ -68,10 +68,11 @@ public:
         f_in.open(data_dir + "/demand.csv");
         printError(!f_in.is_open(), "file not found!");
         getline(f_in, line);
-        customer_ids = std::move(readNames(line));
+        customer_ids = std::move(
+            readNames(line.substr(0, line.size() - 1)));
         while (getline(f_in, line))
         {
-            std::tie(std::ignore, arr);
+            std::tie(std::ignore, arr) = readLine(line);
             demands.emplace_back(arr);
         }
         n_time = demands.size();
@@ -89,8 +90,14 @@ public:
             for (u32 i = 0; i < arr.size(); ++i)
                 if (arr[i] < QoS_lim)
                     edges[k_server].emplace_back(i);
+            k_server++;
         }
         f_in.close();
+    }
+
+    i32 getTime()
+    {
+        return n_time;
     }
 
     // DEBUG function

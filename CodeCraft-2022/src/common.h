@@ -13,6 +13,7 @@
 #include <limits>
 #include <random>
 #include <tuple>
+#include <utility>
 
 typedef int i32;
 typedef unsigned int u32;
@@ -21,9 +22,11 @@ typedef unsigned long long u64;
 
 using std::make_shared;
 using std::make_tuple;
+using std::queue;
 using std::shared_ptr;
 using std::string;
 using std::tuple;
+using std::unique_ptr;
 using std::vector;
 
 #endif
