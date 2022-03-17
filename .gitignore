@@ -1,3 +1,10 @@
+# data
+data/
+
+# cmake files
+bin/
+build/
+
 # Prerequisites
 *.d
 
