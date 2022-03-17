@@ -1,8 +1,11 @@
 #include "common.h"
 #include "utils.hpp"
 
+class FlowGraph;
+
 class Graph
 {
+    friend class FlowGraph;
 
 private:
     u32 n_time, n_server, n_customer;
@@ -16,7 +19,11 @@ private:
     vector<vector<i32>> demands;
 
     // edges: adjacent table
+    //  server -> customer
     vector<vector<i32>> edges;
+
+    vector<string> server_ids;
+    vector<string> customer_ids;
 
 public:
     Graph(string data_dir = "data")
@@ -28,7 +35,8 @@ public:
     {
         const u32 ignore_num = 100;
         std::ifstream f_in;
-        string line;
+        string line, name;
+        vector<i32> arr;
 
         // >>>>> config.ini
         i32 QoS_lim;
@@ -45,7 +53,11 @@ public:
         printError(!f_in.is_open(), "file not found!");
         getline(f_in, line);
         while (getline(f_in, line))
-            capacities.emplace_back(readLine(line).front());
+        {
+            std::tie(name, arr) = readLine(line);
+            server_ids.emplace_back(name);
+            capacities.emplace_back(arr.front());
+        }
         n_server = capacities.size();
         edges.resize(n_server);
         f_in.close();
@@ -54,8 +66,12 @@ public:
         f_in.open(data_dir + "/demand.csv");
         printError(!f_in.is_open(), "file not found!");
         getline(f_in, line);
+        customer_ids = std::move(readNames(line));
         while (getline(f_in, line))
-            demands.emplace_back(readLine(line));
+        {
+            std::tie(std::ignore, arr);
+            demands.emplace_back(arr);
+        }
         n_time = demands.size();
         n_customer = demands.front().size();
         f_in.close();
@@ -67,8 +83,8 @@ public:
         getline(f_in, line);
         while (getline(f_in, line))
         {
-            auto arr = readLine(line);
-            for (auto i = 0; i < arr.size(); ++i)
+            std::tie(std::ignore, arr) = readLine(line);
+            for (u32 i = 0; i < arr.size(); ++i)
                 if (arr[i] < QoS_lim)
                     edges[k_server].emplace_back(i);
         }
@@ -82,5 +98,13 @@ public:
             "Time: " + std::to_string(n_time) + ", " +
             "Server: " + std::to_string(n_server) + ", " +
             "Customer: " + std::to_string(n_customer));
+
+        for (const auto &server_id : server_ids)
+            std::cout << server_id << ' ';
+        std::cout << std::endl;
+
+        for (const auto &customer_id : customer_ids)
+            std::cout << customer_id << ' ';
+        std::cout << std::endl;
     }
 };

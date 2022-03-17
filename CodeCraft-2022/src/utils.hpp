@@ -1,19 +1,34 @@
 #include "common.h"
 
-vector<i32> readLine(const string &line)
+tuple<string, vector<i32>> readLine(const string &line)
 {
     i32 x;
+    string name;
     vector<i32> arr;
     const u32 ignore_num = 100;
 
     std::istringstream s_in(line);
-    s_in.ignore(ignore_num, ',');
+    getline(s_in, name, ',');
     while (s_in >> x)
     {
         arr.emplace_back(x);
         s_in.ignore(ignore_num, ',');
     }
-    return arr;
+    return make_tuple(name, arr);
+}
+
+vector<string> readNames(const string &line)
+{
+    const u32 ignore_num = 100;
+    string name;
+    vector<string> names;
+
+    std::istringstream s_in(line);
+    s_in.ignore(ignore_num, ',');
+    while (getline(s_in, name, ','))
+        names.emplace_back(name);
+
+    return names;
 }
 
 void printInfo(string msg)
