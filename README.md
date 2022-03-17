@@ -36,7 +36,29 @@ CodeCraft-2022
 
 
 
+### 如何编译
+
+可以选择以下几种方式：
+
+- 使用`*.sh`脚本
+
+- 使用`cmake`编译
+
+- 直接使用`g++`编译
+
+  `g++ -Wall -std=c++14 main.cpp -o main`
+
+
+
+### 如何运行
+
+将`data`放入可执行文件所在的目录，运行后会在`solution.txt`输出一组可行解
+
+
+
 ### 如何使用
+
+在你的代码中`include`上述文件，使用以下代码即可求解可行解
 
 ```c++
 int findFeasibleSolution()
