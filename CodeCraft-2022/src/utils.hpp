@@ -1,3 +1,6 @@
+#ifndef __UTILS_HPP__
+#define __UTILS_HPP__
+
 #include "common.h"
 
 tuple<string, vector<i32>> readLine(const string &line)
@@ -50,3 +53,5 @@ void printError(bool expr, string msg)
         exit(0);
     }
 }
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef __GRAPH_HPP__
+#define __GRAPH_HPP__
+
 #include "common.h"
 #include "utils.hpp"
 
@@ -48,7 +51,6 @@ public:
         f_in.close();
 
         // >>>> site_bandwidth.csv
-        i32 capacity;
         f_in.open(data_dir + "/site_bandwidth.csv");
         printError(!f_in.is_open(), "file not found!");
         getline(f_in, line);
@@ -108,3 +110,5 @@ public:
         std::cout << std::endl;
     }
 };
+
+#endif
