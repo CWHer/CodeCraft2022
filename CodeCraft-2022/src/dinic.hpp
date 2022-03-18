@@ -8,7 +8,7 @@
 class Dinic
 {
 private:
-    FlowGraph *g;
+    FlowGraph &g;
 
     vector<i32> depth;
     vector<i32> cur_head;
@@ -18,16 +18,16 @@ private:
     bool BFS()
     {
         std::fill(depth.begin(), depth.end(), 0);
-        depth[g->s_node] = 1;
+        depth[g.s_node] = 1;
 
-        q.push(g->s_node);
+        q.push(g.s_node);
         while (!q.empty())
         {
             auto x = q.front();
             q.pop();
-            for (i32 i = g->head[x]; ~i; i = g->edges[i].nxt)
+            for (i32 i = g.head[x]; ~i; i = g.edges[i].nxt)
             {
-                const auto &e = g->edges[i];
+                const auto &e = g.edges[i];
                 if (!depth[e.v] && e.cap > 0)
                 {
                     depth[e.v] = depth[x] + 1;
@@ -36,22 +36,22 @@ private:
             }
         }
 
-        return depth[g->t_node] > 0;
+        return depth[g.t_node] > 0;
     }
 
     u64 DFS(i32 x, u64 cur_flow)
     {
-        if (cur_flow == 0 || x == g->t_node)
+        if (cur_flow == 0 || x == g.t_node)
             return cur_flow;
 
-        if (depth[x] >= depth[g->t_node])
+        if (depth[x] >= depth[g.t_node])
             return 0;
 
         u64 ret = 0;
-        for (auto &i = cur_head[x]; ~i; i = g->edges[i].nxt)
+        for (auto &i = cur_head[x]; ~i; i = g.edges[i].nxt)
         {
-            auto &e = g->edges[i];
-            auto &inv_e = g->edges[i ^ 1];
+            auto &e = g.edges[i];
+            auto &inv_e = g.edges[i ^ 1];
 
             if (depth[x] + 1 == depth[e.v])
             {
@@ -71,22 +71,21 @@ private:
     }
 
 public:
-    Dinic(FlowGraph &g)
+    Dinic(FlowGraph &g) : g(g)
     {
-        this->g = &g;
         depth.resize(g.n_node, 0);
     }
 
     u64 run()
     {
-        printError(g->t == -1, "invalid time");
+        printError(g.t == -1, "invalid time");
 
         u64 max_flow = 0;
         while (BFS())
         {
-            cur_head = g->head;
+            cur_head = g.head;
             max_flow += DFS(
-                g->s_node, std::numeric_limits<u64>::max());
+                g.s_node, std::numeric_limits<u64>::max());
         }
         return max_flow;
     }
@@ -99,7 +98,7 @@ pair<bool, Solutions> getFeasibleSol(
     Dinic solver(g);
     g.changeCapacity(capacities);
 
-    Solutions solutions(g.getNames()); // store solutions
+    Solutions solutions(std::move(g.getNames())); // store solutions
     for (u32 t = 0; t < n_time; ++t)
     {
         // find feasible solution at time t

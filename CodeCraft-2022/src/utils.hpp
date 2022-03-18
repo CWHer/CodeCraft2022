@@ -34,6 +34,7 @@ vector<string> readNames(const string &line)
     return names;
 }
 
+// x ~ [min, max]
 i32 randomInt(i32 min, i32 max)
 {
     static std::random_device rd;
