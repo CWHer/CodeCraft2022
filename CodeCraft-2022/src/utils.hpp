@@ -34,6 +34,27 @@ vector<string> readNames(const string &line)
     return names;
 }
 
+i32 randomInt(i32 min, i32 max)
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<i32> dist(min, max);
+    return dist(gen);
+}
+
+f32 randomReal()
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_real_distribution<f32> dist(0, 1);
+    return dist(gen);
+}
+
+f32 randomReal(f32 min,f32 max)
+{
+    return min + (max -min) * randomReal();
+}
+
 void printInfo(string msg)
 {
     std::cout << "[INFO]: " << msg << std::endl;
