@@ -18,6 +18,7 @@ CodeCraft-2022
     │   graph.hpp
     │   main.cpp
     │   settings.h
+    │   solution.hpp
     └─  utils.hpp
 ```
 
@@ -30,6 +31,7 @@ CodeCraft-2022
   - `common.h`: 头文件
   - `utils.hpp`: utility 
   - `settings.h`: 配置文件
+  - `solution.hpp`: 用于存储解
   - `graph.hpp`: 处理输入文件
   - `flow_graph.hpp`: 建模完的最大流图
   - `dinic.hpp`: 求解最大流
@@ -58,44 +60,4 @@ CodeCraft-2022
 
 ### 如何使用
 
-在你的代码中`include`上述文件，使用以下代码即可求解可行解
-
-```c++
-int findFeasibleSolution()
-{
-    // read input files & construct basic graph
-    Graph g;
-    g.display();
-    // construct network flow graph
-    FlowGraph fg(g);
-    fg.display();
-    // initialize solver
-    Dinic solver(fg);
-
-    vector<string> solutions; // store solutions
-    auto n_time = g.getTime();
-    for (u32 t = 0; t < n_time; ++t)
-    {
-        // find feasible solution at time t
-        
-        // strictly follow the following steps
-        auto demand_sum = fg.changeDemand(t);
-        fg.reset(); 
-        auto max_flow = solver.run();
-        printError(max_flow != demand_sum, "invalid solution");
-
-        // you may want to modify fg.getSolution()
-        //	so that it returns data instead of a string
-        u32 timestep;
-        vector<string> solution;
-        std::tie(timestep, solution) = std::move(fg.getSolution());
-        printError(t != timestep, "invalid time");
-        solutions.insert(solutions.end(), solution.begin(), solution.end());
-    }
-
-    return solutions;
-}
-```
-
-
-
+参考`dinic.hpp`中的`getFeasibleSol()`
