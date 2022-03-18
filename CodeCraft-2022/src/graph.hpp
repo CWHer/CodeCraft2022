@@ -6,6 +6,8 @@
 
 class FlowGraph;
 
+// NOTE: DO NOT use Graph,
+//  once it is used to construct FlowGraph
 class Graph
 {
     friend class FlowGraph;
@@ -96,10 +98,8 @@ public:
         f_in.close();
     }
 
-    i32 getTime()
-    {
-        return n_time;
-    }
+    i32 getTime() { return n_time; }
+    vector<i32> getCapacity() { return capacities; }
 
     // DEBUG function
     void display()

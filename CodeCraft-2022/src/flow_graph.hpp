@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "graph.hpp"
+#include "solution.hpp"
 
 class Dinic;
 
@@ -56,8 +57,7 @@ public:
         n_node = n_server + n_customer + 2;
         // server: 1 ~ n_server
         // customer: n_server + 1 ~ n_server + n_customer
-        s_node = 0;
-        t_node = n_server + n_customer + 1;
+        s_node = 0, t_node = n_node - 1;
 
         head.resize(n_node, -1);
         demands = std::move(g.demands);
@@ -77,6 +77,11 @@ public:
             // NOTE: invoke changeDemand before solving
             addEdges(i, t_node, 0);
         }
+    }
+
+    tuple<vector<string>, vector<string>> getNames()
+    {
+        return make_tuple(server_ids, customer_ids);
     }
 
     void reset()
@@ -103,33 +108,39 @@ public:
         return demand_sum;
     }
 
+    void changeCapacity(const vector<i32> &capacities)
+    {
+        printError(
+            capacities.size() != n_server,
+            "invalid capacity");
+
+        for (i32 i = head[s_node]; ~i; i = edges[i].nxt)
+        {
+            auto &e = edges[i];
+            e.cap = e.ori_cap = capacities[e.v - 1];
+        }
+    }
+
+    Solution getSolution()
+    {
+        Solution solution(n_customer);
+
+        for (i32 i = 1; i <= n_customer; ++i)
+            for (i32 j = head[i + n_server]; ~j; j = edges[j].nxt)
+            {
+                const auto &e = edges[j];
+                if (e.v != t_node && e.cap > 0)
+                    solution.add(make_tuple(i - 1, e.v - 1, e.cap));
+            }
+        return solution;
+    }
+
+    // DEBUG function
     void display()
     {
         printInfo(
             "Nodes: " + std::to_string(n_node) + ", " +
             "Edges: " + std::to_string(edges.size()));
-    }
-
-    tuple<u32, vector<string>> getSolution()
-    {
-        vector<string> solution;
-
-        auto format = [&](i32 k, i32 flow, bool add_sep)
-        { return (add_sep ? ",<" : "<") + server_ids[k] + "," + std::to_string(flow) + ">"; };
-
-        for (i32 i = 1; i <= n_customer; ++i)
-        {
-            string line = customer_ids[i - 1] + ":";
-            for (i32 j = head[i + n_server]; ~j; j = edges[j].nxt)
-            {
-                const auto &e = edges[j];
-                if (e.v != t_node && e.cap > 0)
-                    line += format(e.v - 1, e.cap, line.back() == '>');
-            }
-            solution.emplace_back(line);
-        }
-
-        return make_tuple(t, solution);
     }
 };
 
