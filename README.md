@@ -35,6 +35,7 @@ CodeCraft-2022
   - `graph.hpp`: 处理输入文件
   - `flow_graph.hpp`: 建模完的最大流图
   - `dinic.hpp`: 求解最大流
+  - `min_max.hpp`: 通过local search的方式降低每个`server`的最大带宽
 
 
 

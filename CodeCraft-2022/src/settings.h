@@ -6,9 +6,9 @@
 namespace Settings
 {
     // >>> minimize maximum local search
-    const i32 min_max_delta = 100000;
-
-    const f32 discounting_factor = 0.98;
+    const i32 init_delta = 1000000;
+    const i32 min_delta = 100;
+    const f32 discounting_factor = 0.96;
 
     // <<< minimize maximum local search
 
