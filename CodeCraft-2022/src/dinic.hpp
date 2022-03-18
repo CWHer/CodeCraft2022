@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "flow_graph.hpp"
+#include "solution.hpp"
 
 class Dinic
 {
@@ -90,5 +91,30 @@ public:
         return max_flow;
     }
 };
+
+pair<bool, Solutions> getFeasibleSol(
+    FlowGraph &g, u32 n_time, const vector<i32> &capacities)
+{
+    // initialize solver
+    Dinic solver(g);
+    g.changeCapacity(capacities);
+
+    Solutions solutions(g.getNames()); // store solutions
+    for (u32 t = 0; t < n_time; ++t)
+    {
+        // find feasible solution at time t
+        auto demand_sum = g.changeDemand(t);
+        g.reset();
+        auto max_flow = solver.run();
+
+        if (max_flow != demand_sum)
+            return make_pair(false, solutions);
+
+        auto solution = std::move(g.getSolution());
+        solutions.add(solution);
+    }
+
+    return make_pair(true, solutions);
+}
 
 #endif
