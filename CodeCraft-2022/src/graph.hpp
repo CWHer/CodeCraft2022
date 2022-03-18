@@ -68,8 +68,9 @@ public:
         f_in.open(data_dir + "/demand.csv");
         printError(!f_in.is_open(), "file not found!");
         getline(f_in, line);
-        customer_ids = std::move(
-            readNames(line.substr(0, line.size() - 1)));
+        while (line.back() == '\r' || line.back() == '\n')
+            line.pop_back();
+        customer_ids = std::move(readNames(line));
         while (getline(f_in, line))
         {
             std::tie(std::ignore, arr) = readLine(line);

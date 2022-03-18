@@ -114,8 +114,8 @@ public:
     {
         vector<string> solution;
 
-        auto format = [&](i32 k, i32 flow)
-        { return "<" + server_ids[k] + "," + std::to_string(flow) + ">"; };
+        auto format = [&](i32 k, i32 flow, bool add_sep)
+        { return (add_sep ? ",<" : "<") + server_ids[k] + "," + std::to_string(flow) + ">"; };
 
         for (i32 i = 1; i <= n_customer; ++i)
         {
@@ -124,7 +124,7 @@ public:
             {
                 const auto &e = edges[j];
                 if (e.v != t_node && e.cap > 0)
-                    line += format(e.v - 1, e.cap);
+                    line += format(e.v - 1, e.cap, line.back() == '>');
             }
             solution.emplace_back(line);
         }

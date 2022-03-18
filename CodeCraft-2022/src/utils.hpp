@@ -50,7 +50,7 @@ void printError(bool expr, string msg)
     if (expr)
     {
         std::cout << "[ERROR]: " << msg << std::endl;
-        exit(0);
+        exit(1);
     }
 }
 

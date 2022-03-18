@@ -14,6 +14,7 @@
 #include <random>
 #include <tuple>
 #include <utility>
+#include <exception>
 
 typedef int i32;
 typedef unsigned int u32;
