@@ -16,6 +16,9 @@ int main()
     //     flow_g, g.getTime(), g.getCapacity());
     // printError(!answer.first, "no solution");
 
+    // auto result = std::move(answer.second.evaluate());
+    // std::cout << "cost: " << result.first << std::endl;
+
     // std::ofstream f_out("solution.txt");
     // f_out << answer.second;
     // f_out.close();

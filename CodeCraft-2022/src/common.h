@@ -17,6 +17,7 @@
 #include <exception>
 #include <ctime>
 #include <chrono>
+#include <cmath>
 
 typedef int i32;
 typedef unsigned int u32;
