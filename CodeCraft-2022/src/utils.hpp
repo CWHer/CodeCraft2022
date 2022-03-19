@@ -3,6 +3,7 @@
 
 #include "common.h"
 
+// >>> input utils
 tuple<string, vector<i32>> readLine(const string &line)
 {
     i32 x;
@@ -33,6 +34,24 @@ vector<string> readNames(const string &line)
 
     return names;
 }
+// <<< input utils
+
+// softmax with temperature
+vector<f64> softMax(
+    const vector<f64> logits, f64 temp = 1.0)
+{
+    f64 inv_Z = 0, inv_temp = 1.0 / temp;
+    f64 max_logit = *std::max_element(logits.begin(), logits.end());
+
+    vector<f64> probs(logits.size());
+    for (u32 i = 0; i < logits.size(); ++i)
+        inv_Z += probs[i] = std::exp((logits[i] - max_logit) * inv_temp);
+    inv_Z = 1.0 / inv_Z;
+    for (u32 i = 0; i < probs.size(); ++i)
+        probs[i] *= inv_Z;
+
+    return probs;
+}
 
 // x ~ [min, max]
 i32 randomInt(i32 min, i32 max)
@@ -43,6 +62,17 @@ i32 randomInt(i32 min, i32 max)
     return dist(gen);
 }
 
+// random select with given probability
+template <class T>
+i32 randomChoice(const vector<T> &probs)
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::discrete_distribution<> dist(probs.begin(), probs.end());
+    return dist(gen);
+}
+
+// [0, 1)
 f32 randomReal()
 {
     static std::random_device rd;
@@ -51,9 +81,9 @@ f32 randomReal()
     return dist(gen);
 }
 
-f32 randomReal(f32 min,f32 max)
+f32 randomReal(f32 min, f32 max)
 {
-    return min + (max -min) * randomReal();
+    return min + (max - min) * randomReal();
 }
 
 void printInfo(string msg)
