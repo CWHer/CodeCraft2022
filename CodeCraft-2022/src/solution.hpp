@@ -16,6 +16,7 @@ struct Solution
 
     void add(tuple<i32, i32, i32> flow)
     {
+        // customer server flow
         i32 u, v, w;
         std::tie(u, v, w) = flow;
         solution[u].push_back(make_pair(v, w));
@@ -62,7 +63,32 @@ public:
         solutions.emplace_back(sol);
     }
 
-    // TODO: calculate total cost
+    pair<u64, vector<vector<i32>>> evaluate()
+    {
+        u64 cost = 0;
+        vector<vector<i32>> flows(server_ids.size());
+
+        for (const auto &solution : solutions)
+        {
+            vector<i32> flow(server_ids.size(), 0);
+            for (const auto &customer : solution.solution)
+                for (const auto &f : customer)
+                    flow[f.first] += f.second;
+            for (u32 i = 0; i < flow.size(); ++i)
+                flows[i].emplace_back(flow[i]);
+        }
+
+        // NOTE: 0-based vector
+        int k_idx = std::ceil(solutions.size() * 0.95) - 1;
+        for (auto &flow : flows)
+        {
+            auto k_large = flow.begin() + k_idx;
+            std::nth_element(flow.begin(), k_large, flow.end());
+            cost += *k_large;
+        }
+
+        return make_pair(cost, flows);
+    }
 };
 
 #endif
