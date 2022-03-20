@@ -2,6 +2,7 @@
 #define __SOLUTION_HPP__
 
 #include "common.h"
+#include "settings.h"
 
 struct Solution
 {
@@ -53,6 +54,8 @@ private:
     vector<Solution> solutions;
 
 public:
+    Solutions() {}
+
     Solutions(tuple<vector<string>, vector<string>> ids)
     {
         std::tie(this->server_ids, this->customer_ids) = std::move(ids);
@@ -63,10 +66,14 @@ public:
         solutions.emplace_back(sol);
     }
 
-    pair<u64, vector<vector<i32>>> evaluate()
+    tuple<u64, vector<vector<i32>>, vector<i32>, vector<i64>>
+    evaluate(f32 quantile = Settings::quantile)
     {
         u64 cost = 0;
         vector<vector<i32>> flows(server_ids.size());
+        vector<i32> max_flow(
+            server_ids.size(), std::numeric_limits<i32>::min());
+        vector<i64> regrets(server_ids.size(), 0);
 
         for (const auto &solution : solutions)
         {
@@ -75,11 +82,18 @@ public:
                 for (const auto &f : customer)
                     flow[f.first] += f.second;
             for (u32 i = 0; i < flow.size(); ++i)
+            {
+                regrets[i] -= flow[i];
+                max_flow[i] = std::max(max_flow[i], flow[i]);
                 flows[i].emplace_back(flow[i]);
+            }
         }
 
+        for (u32 i = 0; i < regrets.size(); ++i)
+            regrets[i] += (i64)max_flow[i] * flows[i].size();
+
         // NOTE: 0-based vector
-        int k_idx = std::ceil(solutions.size() * 0.95) - 1;
+        int k_idx = std::ceil(solutions.size() * quantile) - 1;
         for (auto &flow : flows)
         {
             auto k_large = flow.begin() + k_idx;
@@ -87,7 +101,7 @@ public:
             cost += *k_large;
         }
 
-        return make_pair(cost, flows);
+        return make_tuple(cost, flows, max_flow, regrets);
     }
 };
 
