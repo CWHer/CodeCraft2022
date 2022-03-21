@@ -91,26 +91,44 @@ public:
     }
 };
 
-pair<bool, Solutions> getFeasibleSol(
+// at time t
+inline pair<bool, Solution> getFeasibleSol(
+    FlowGraph &g, u32 t, const vector<i32> &capacities)
+{
+    // initialize solver
+    Dinic solver(g);
+    g.changeCapacity(capacities);
+
+    // find feasible solution at time t
+    auto demand_sum = g.changeDemand(t);
+    g.reset();
+    auto max_flow = solver.run();
+
+    if (max_flow != demand_sum)
+        return make_pair(false, Solution());
+
+    auto solution = std::move(g.getSolution());
+    return make_pair(true, solution);
+}
+
+// overall
+pair<bool, Solutions> getFeasibleSols(
     FlowGraph &g, u32 n_time, const vector<i32> &capacities)
 {
     // initialize solver
     Dinic solver(g);
     g.changeCapacity(capacities);
 
-    Solutions solutions(std::move(g.getNames())); // store solutions
+    // store solutions
+    Solutions solutions(std::move(g.getNames()));
     for (u32 t = 0; t < n_time; ++t)
     {
         // find feasible solution at time t
-        auto demand_sum = g.changeDemand(t);
-        g.reset();
-        auto max_flow = solver.run();
-
-        if (max_flow != demand_sum)
+        auto result = std::move(
+            getFeasibleSol(g, t, capacities));
+        if (!result.first)
             return make_pair(false, solutions);
-
-        auto solution = std::move(g.getSolution());
-        solutions.add(solution);
+        solutions.add(result.second);
     }
 
     return make_pair(true, solutions);
