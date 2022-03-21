@@ -4,10 +4,37 @@
 #include "common.h"
 #include "settings.h"
 
+struct Statistics
+{
+    i32 max, cost;
+    f64 mean, var;
+    // regret := max{f_i} * t - sum{f_i}
+    i64 regret;
+
+    Statistics()
+        : max(std::numeric_limits<i32>::min()),
+          mean(0), var(0), cost(0), regret(0) {}
+
+    friend std::ostream &operator<<(
+        std::ostream &out, const Statistics &stat)
+    {
+        out << "max: " << std::setw(12) << stat.max << ", "
+            << "cost: " << std::setw(12) << stat.cost << ", "
+            << "mean: " << std::setw(12) << stat.mean << ", "
+            << "variance: " << std::setw(12) << stat.var << ", "
+            << "regret: " << std::setw(12) << stat.regret << '\n';
+
+        return out;
+    }
+};
+
 struct Solution
 {
     i32 n_customer;
     vector<vector<pair<i32, i32>>> solution;
+
+    // problematic initialization
+    Solution() {}
 
     Solution(i32 n_customer)
     {
@@ -54,6 +81,7 @@ private:
     vector<Solution> solutions;
 
 public:
+    // problematic initialization
     Solutions() {}
 
     Solutions(tuple<vector<string>, vector<string>> ids)
@@ -66,14 +94,11 @@ public:
         solutions.emplace_back(sol);
     }
 
-    tuple<u64, vector<vector<i32>>, vector<i32>, vector<i64>>
-    evaluate(f32 quantile = Settings::quantile)
+    tuple<u64, vector<Statistics>> evaluate(f32 quantile = Settings::quantile)
     {
         u64 cost = 0;
+        vector<Statistics> stats(server_ids.size());
         vector<vector<i32>> flows(server_ids.size());
-        vector<i32> max_flow(
-            server_ids.size(), std::numeric_limits<i32>::min());
-        vector<i64> regrets(server_ids.size(), 0);
 
         for (const auto &solution : solutions)
         {
@@ -83,25 +108,33 @@ public:
                     flow[f.first] += f.second;
             for (u32 i = 0; i < flow.size(); ++i)
             {
-                regrets[i] -= flow[i];
-                max_flow[i] = std::max(max_flow[i], flow[i]);
+                auto &stat = stats[i];
+                stat.regret -= flow[i];
+                stat.mean += flow[i];
+                stat.var += 1.0 * flow[i] * flow[i];
+                stat.max = std::max(stat.max, flow[i]);
                 flows[i].emplace_back(flow[i]);
             }
         }
 
-        for (u32 i = 0; i < regrets.size(); ++i)
-            regrets[i] += (i64)max_flow[i] * flows[i].size();
+        for (u32 i = 0; i < stats.size(); ++i)
+        {
+            auto &stat = stats[i];
+            stat.mean /= flows[i].size();
+            stat.var = stat.var / flows[i].size() - stat.mean * stat.mean;
+            stat.regret += (i64)stat.max * flows[i].size();
+        }
 
         // NOTE: 0-based vector
         int k_idx = std::ceil(solutions.size() * quantile) - 1;
-        for (auto &flow : flows)
+        for (u32 i = 0; i < flows.size(); ++i)
         {
-            auto k_large = flow.begin() + k_idx;
-            std::nth_element(flow.begin(), k_large, flow.end());
-            cost += *k_large;
+            auto k_large = flows[i].begin() + k_idx;
+            std::nth_element(flows[i].begin(), k_large, flows[i].end());
+            cost += stats[i].cost = *k_large;
         }
 
-        return make_tuple(cost, flows, max_flow, regrets);
+        return make_tuple(cost, stats);
     }
 };
 

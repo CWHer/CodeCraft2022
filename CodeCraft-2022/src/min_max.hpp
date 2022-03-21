@@ -45,10 +45,7 @@ private:
     vector<i32> capacities;
 
     Solutions best_solutions, last_solutions;
-    vector<vector<i32>> last_flows;
-    vector<i32> last_max_flow;
-    // regret := max{f_i} * t - sum{f_i}
-    vector<i64> last_regrets;
+    vector<Statistics> last_stats;
     u64 last_cost, best_cost;
 
     vector<u64> trajectory;
@@ -81,13 +78,13 @@ private:
         // capacities[k] = last_costs[k] / 2;
 
         // DO NOT change solution
-        if (capacities[k] >= last_max_flow[k])
+        if (capacities[k] >= last_stats[k].max)
         {
             optimizers[k].update(capacities[k]);
             return;
         }
 
-        auto answer = getFeasibleSol(flow_g, n_time, capacities);
+        auto answer = getFeasibleSols(flow_g, n_time, capacities);
 
         // no feasible solution
         if (!answer.first)
@@ -101,8 +98,7 @@ private:
         optimizers[k].update(capacities[k]);
 
         last_solutions = std::move(answer.second);
-        std::tie(last_cost, last_flows,
-                 last_max_flow, last_regrets) = std::move(last_solutions.evaluate(1.0));
+        std::tie(last_cost, last_stats) = std::move(last_solutions.evaluate());
         trajectory.push_back(last_cost);
 
         if (last_cost < best_cost)
@@ -117,8 +113,7 @@ public:
     {
         this->n_time = g.getTime();
         capacities = std::move(g.getCapacity());
-        last_max_flow.resize(capacities.size());
-        last_regrets.resize(capacities.size());
+        last_stats.resize(capacities.size());
         best_cost = std::numeric_limits<u64>::max();
     }
 
@@ -129,14 +124,16 @@ public:
                      std::chrono::system_clock::now().time_since_epoch())
               .count(); };
 
-        auto answer = getFeasibleSol(flow_g, n_time, capacities);
+        auto answer = getFeasibleSols(flow_g, n_time, capacities);
         last_solutions = std::move(answer.second);
-        std::tie(last_cost, last_flows,
-                 last_max_flow, last_regrets) = std::move(last_solutions.evaluate(1.0));
+        std::tie(last_cost, last_stats) = std::move(last_solutions.evaluate());
 
         // agressive optimization
-        auto max_flow = *std::max_element(
-            last_max_flow.begin(), last_max_flow.end());
+        auto max_flow = std::max_element(
+                            last_stats.begin(), last_stats.end(),
+                            [](const auto &lhs, const auto &rhs)
+                            { return lhs.max < rhs.max; })
+                            ->max;
         optimizers.reserve(capacities.size());
         for (u32 i = 0; i < capacities.size(); ++i)
         {
@@ -154,6 +151,10 @@ public:
         {
             do
             {
+                vector<i64> last_regrets;
+                last_regrets.reserve(last_stats.size());
+                for (const auto &stat : last_stats)
+                    last_regrets.push_back(stat.regret);
                 // TODO: choose max regret
                 k = randomChoice<i64>(last_regrets);
                 // k = randomInt(0, capacities.size() - 1);
@@ -170,9 +171,9 @@ public:
 
     void display()
     {
-        std::cout << "\nlast regret: ";
-        for (const auto &regret : last_regrets)
-            std::cout << regret << ' ';
+        std::cout << "\nlast states: \n";
+        for (const auto &stat : last_stats)
+            std::cout << '\t' << stat;
         std::cout << std::endl;
         std::cout << "cost: " << best_cost << std::endl;
     }
