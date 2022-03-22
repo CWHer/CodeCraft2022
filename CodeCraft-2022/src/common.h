@@ -19,6 +19,7 @@
 #include <chrono>
 #include <cmath>
 #include <iomanip>
+#include <unordered_map>
 
 typedef int i32;
 typedef unsigned int u32;
@@ -36,6 +37,7 @@ using std::shared_ptr;
 using std::string;
 using std::tuple;
 using std::unique_ptr;
+using std::unordered_map;
 using std::vector;
 
 #endif

@@ -31,7 +31,11 @@ struct Statistics
 struct Solution
 {
     i32 n_customer;
+    // customer server flow
     vector<vector<pair<i32, i32>>> solution;
+
+    // Tooooo slow.
+    // vector<unordered_map<i32, i32>> solution;
 
     // problematic initialization
     Solution() {}
@@ -48,6 +52,32 @@ struct Solution
         i32 u, v, w;
         std::tie(u, v, w) = flow;
         solution[u].push_back(make_pair(v, w));
+        // solution[u][v] += w;
+    }
+
+    // NOTE: this operation is time-consuming
+    Solution operator+=(const Solution &rhs)
+    {
+        printError(
+            solution.size() != rhs.solution.size(),
+            "size mismatch");
+
+        Solution result(n_customer);
+
+        for (u32 i = 0; i < solution.size(); ++i)
+        {
+            unordered_map<i32, i32> flows;
+            for (const auto &flow : solution[i])
+                flows[flow.first] += flow.second;
+            for (const auto &flow : rhs.solution[i])
+                flows[flow.first] += flow.second;
+
+            result.solution[i].reserve(flows.size());
+            for (const auto &flow : flows)
+                result.solution[i].push_back(flow);
+        }
+
+        return result;
     }
 };
 

@@ -48,6 +48,10 @@ private:
         addEdge(v, u, 0);
     }
 
+    // 0-based
+    inline i32 serverNode(i32 k) { return k + 1; }
+    inline i32 customerNode(i32 k) { return k + n_server + 1; }
+
 public:
     FlowGraph(Graph &g)
     {
@@ -64,18 +68,18 @@ public:
         server_ids = std::move(g.server_ids);
         customer_ids = std::move(g.customer_ids);
 
-        for (i32 i = 1; i <= n_server; ++i)
-            addEdges(s_node, i, g.capacities[i - 1]);
+        for (i32 i = 0; i < n_server; ++i)
+            addEdges(s_node, serverNode(i), g.capacities[i]);
 
-        for (i32 i = 1; i <= n_server; ++i)
-            for (const auto &j : g.edges[i - 1])
-                addEdges(i, n_server + j + 1,
+        for (i32 i = 0; i < n_server; ++i)
+            for (const auto &j : g.edges[i])
+                addEdges(serverNode(i), customerNode(j),
                          std::numeric_limits<i32>::max());
 
-        for (i32 i = n_server + 1; i < t_node; ++i)
+        for (i32 i = 0; i < n_customer; ++i)
         {
             // NOTE: invoke changeDemand before solving
-            addEdges(i, t_node, 0);
+            addEdges(customerNode(i), t_node, 0);
         }
     }
 
@@ -99,10 +103,10 @@ public:
 
         this->t = t;
         u64 demand_sum = 0;
-        for (i32 i = 1; i <= n_customer; ++i)
+        for (i32 i = 0; i < n_customer; ++i)
         {
-            auto &e = edges[head[i + n_server]];
-            e.cap = e.ori_cap = demands[t][i - 1];
+            auto &e = edges[head[customerNode(i)]];
+            e.cap = e.ori_cap = demands[t][i];
             demand_sum += e.cap;
         }
         return demand_sum;
@@ -118,6 +122,32 @@ public:
         {
             auto &e = edges[i];
             e.cap = e.ori_cap = capacities[e.v - 1];
+        }
+    }
+
+    // NOTE: this operation is time-consuming
+    void fixPartialSol(const Solution &sol)
+    {
+        // NOTE: new sol doesn't contain solution here
+        unordered_map<i32, i32> fixed_edges;
+        for (u32 i = 0; i < n_customer; ++i)
+            for (const auto &flow : sol.solution[i])
+            {
+                fixed_edges[serverNode(flow.first)] += flow.second;
+                fixed_edges[customerNode(i)] += flow.second;
+            }
+
+        for (i32 i = head[s_node]; ~i; i = edges[i].nxt)
+        {
+            auto &e = edges[i];
+            if (fixed_edges.count(e.v) > 0)
+                e.cap = e.ori_cap -= fixed_edges[e.v];
+        }
+        for (i32 i = 0; i < n_customer; ++i)
+        {
+            auto &e = edges[head[customerNode(i)]];
+            if (fixed_edges.count(e.v) > 0)
+                e.cap = e.ori_cap -= fixed_edges[e.v];
         }
     }
 
