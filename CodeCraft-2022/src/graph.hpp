@@ -11,6 +11,7 @@ class FlowGraph;
 class Graph
 {
     friend class FlowGraph;
+    friend class ExtremeAllocator;
 
 private:
     u32 n_time, n_server, n_customer;
@@ -31,7 +32,7 @@ private:
     vector<string> customer_ids;
 
 public:
-    Graph(string data_dir)
+    Graph(string data_dir = "data")
     {
         loadData(data_dir);
     }

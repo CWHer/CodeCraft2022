@@ -1,34 +1,36 @@
 #include "graph.hpp"
 #include "flow_graph.hpp"
 #include "dinic.hpp"
-#include "min_max.hpp"
+#include "allocate_extreme.hpp"
+#include "greedy.hpp"
 
 int main()
 {
-    Graph g("data");
+    // for submission:
+    /*
+    Graph g("/data");
+    AllocateExtreme ae(0.13, "/data");
+    std::ofstream f_out("/output/solution.txt");
+    */
+
+    // for testing:
+
+    Graph g;
+    ExtremeAllocator allocator(0.1, g);
+
     g.display();
-    FlowGraph flow_g(g);
-    flow_g.display();
-    Dinic solver(flow_g);
+    FlowGraph fg(g);
+    fg.display();
+    Dinic solver(fg);
 
-    // >>> feasible solution
-    // auto answer = getFeasibleSol(
-    //     flow_g, g.getTime(), g.getCapacity());
-    // printError(!answer.first, "no solution");
+    // get answer
+    Greedy gy(fg, g.getTime());
+    auto answer = gy.recurrent_search(fg, g.getCapacity(), allocator);
 
-    // auto result = std::move(answer.second.evaluate());
-    // std::cout << "cost: " << result.first << std::endl;
-
-    // std::ofstream f_out("solution.txt");
-    // f_out << answer.second;
-    // f_out.close();
-    // <<< feasible solution
-
-    MinMax minmax_solver(g, flow_g);
-    auto solutions = minmax_solver.run();
+    printError(!answer.first, "no solution");
 
     std::ofstream f_out("solution.txt");
-    f_out << solutions;
+    f_out << answer.second;
     f_out.close();
 
     return 0;

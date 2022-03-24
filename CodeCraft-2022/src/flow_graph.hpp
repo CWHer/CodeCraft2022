@@ -4,12 +4,16 @@
 #include "common.h"
 #include "graph.hpp"
 #include "solution.hpp"
+#include "allocate_extreme.hpp"
 
 class Dinic;
+class Greedy;
+class ExtremeAllocator;
 
 class FlowGraph
 {
     friend class Dinic;
+    friend class Greedy;
 
 private:
     i32 t; // current timestep
@@ -171,6 +175,80 @@ public:
         printInfo(
             "Nodes: " + std::to_string(n_node) + ", " +
             "Edges: " + std::to_string(edges.size()));
+    }
+
+    pair<bool, Solution> getGreedySol(
+        vector<vector<int>> &costs, int valid_time,
+        const vector<vector<double>> &weights,
+        const vector<std::unordered_set<int>> &res,
+        const vector<vector<Allocation>> &exres)
+    {
+
+        Solution solution(n_customer);
+        vector<int> cur_demands(demands[t]);
+        vector<int> remained_capacity(n_server);
+        vector<pair<double, int>> available;
+
+        // calculate remained capacity for all servers
+        for (i32 j = head[s_node]; ~j; j = edges[j].nxt)
+        {
+            Edge *e = &(edges[j]);
+            remained_capacity[e->v - 1] = e->ori_cap;
+        }
+
+        // preallocate based on AllocateExtreme
+        for (auto &allo : exres[t])
+        {
+            cur_demands[allo.client] -= allo.bandwidth;
+            solution.add(make_tuple(allo.client, allo.server, allo.bandwidth));
+        }
+
+        // allocate requirements for each customer
+        for (i32 i = 1; i <= n_customer; ++i)
+        {
+            available.clear();
+            // get all available servers for customer i(add into 'available')
+            double total_weight = 0;
+            for (i32 j = head[i + n_server]; ~j; j = edges[j].nxt)
+            {
+                const Edge &e = edges[j];
+                if (e.v < n_server)
+                {
+                    available.emplace_back(weights[t][e.v - 1], e.v - 1);
+                    total_weight += weights[t][e.v - 1];
+                }
+            }
+            // add edges
+            int unfinished = cur_demands[i - 1];
+            for (int j = 0; j < available.size(); ++j) // for all possible edges
+            {
+                const pair<double, int> &pr = available[j];
+                int cur_demand = (j == available.size() - 1) ? unfinished : (cur_demands[i - 1] * pr.first / total_weight); // edge value
+                int target_s = pr.second;                                                                                   // edge target
+                if (cur_demand == 0)
+                    continue;
+
+                // check flow amount
+                if (remained_capacity[pr.second] >= cur_demand) // available for cur_demand
+                {
+                    unfinished -= cur_demand;
+                    remained_capacity[pr.second] -= cur_demand;
+                }
+                else // unavailable, then flow into e as much as possible
+                {
+                    unfinished -= remained_capacity[pr.second];
+                    cur_demand = remained_capacity[pr.second];
+                    remained_capacity[pr.second] = 0;
+                }
+
+                solution.add(make_tuple(i - 1, pr.second, cur_demand)); // add into solutions
+                costs[t][pr.second] += cur_demand;                      // update costs
+            }
+            if (unfinished != 0) // infeasible dispatch
+                return make_pair(false, solution);
+        }
+
+        return make_pair(true, solution);
     }
 };
 

@@ -20,6 +20,7 @@
 #include <cmath>
 #include <iomanip>
 #include <unordered_map>
+#include <unordered_set>
 
 typedef int i32;
 typedef unsigned int u32;
@@ -38,6 +39,7 @@ using std::string;
 using std::tuple;
 using std::unique_ptr;
 using std::unordered_map;
+using std::unordered_set;
 using std::vector;
 
 #endif
