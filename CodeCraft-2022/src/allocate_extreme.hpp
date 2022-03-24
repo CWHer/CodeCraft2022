@@ -7,6 +7,7 @@
 // Handling extreme requests
 #include "common.h"
 #include "graph.hpp"
+#include "solution.hpp"
 
 struct Allocation
 {
@@ -18,9 +19,11 @@ struct Allocation
 class ExtremeAllocator
 {
 private:
-    // requests[TimeNum][FringeNum]: 在 TimeNum 时刻对编号为 FringeNum 的边缘节点的带宽请求之和
+    // Get Solution
+    Solutions solutions;
+    
     f32 peak_ratio;
-
+    // requests[TimeNum][FringeNum]: 在 TimeNum 时刻对编号为 FringeNum 的边缘节点的带宽请求之和
     vector<vector<i32>> requests;
 
     const Graph &g;
@@ -132,6 +135,17 @@ private:
         }
     }
 
+    void Turn2Solution() {
+        for (int time = 0;time < extreme_result.size();time++) {
+            Solution cursolution(g.n_customer);
+            for (int i = 0;i < extreme_result[time].size();i++) {
+                cursolution.add(make_tuple(extreme_result[time][i].client, extreme_result[time][i].server, 
+                extreme_result[time][i].bandwidth));
+            }
+            solutions.add(cursolution);
+        }
+    }
+
 public:
     // result[time] 为 time 时刻使得带宽请求拉满的边缘节点编号集合
     vector<unordered_set<i32>> result;
@@ -177,7 +191,14 @@ public:
         getExtreme();
         allocate();
         computeResult();
+        Turn2Solution();
     }
+
+    // 获取类型为 Solutions 的极端请求分配结果
+    Solutions GetSolution() {
+        return this->solutions;
+    }
+
 };
 
 #endif
