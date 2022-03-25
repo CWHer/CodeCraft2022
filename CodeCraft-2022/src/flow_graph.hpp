@@ -128,6 +128,9 @@ public:
     // NOTE: this operation is time-consuming
     void fixPartialSol(const Solution &sol)
     {
+        printWarning(
+            true, "fixPartialSol() is deprecated. Instead, change graph directly.");
+
         // NOTE: new sol doesn't contain solution here
         unordered_map<i32, i32> fixed_edges;
         for (u32 i = 0; i < n_customer; ++i)
