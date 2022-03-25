@@ -36,7 +36,6 @@ private:
     // Get Solution
     Solutions solutions;
 
-    f32 peak_ratio;
     // requests[TimeNum][FringeNum]: 在 TimeNum 时刻对编号为 FringeNum 的边缘节点的带宽请求之和
     vector<vector<i32>> requests;
 
@@ -66,7 +65,7 @@ private:
             }
         }
         while (!extreme_que.empty()) {
-            if (total_select >= g.n_server * g.n_time * peak_ratio) break;
+            if (total_select >= g.n_server * g.n_time * 0.05) break;
             tuple<i32, i32, i32> node = extreme_que.top();
             i32 server = std::get<1>(node);
             i32 time = std::get<0>(node);
@@ -76,7 +75,7 @@ private:
                 dirty_update[time][server]--;
                 continue;
             }
-            if (ratio_flag[server] >= g.n_time * peak_ratio) continue;
+            if (ratio_flag[server] >= g.n_time * 0.05) continue;
             ratio_flag[server]++;
             total_select++;
             // compute alocation
@@ -127,10 +126,8 @@ private:
     }
 
 public:
-    ExtremeAllocator(f32 Peak_ratio, const Graph& g) : g(g),demands(g.demands)
+    ExtremeAllocator(const Graph& g) : g(g),demands(g.demands)
     {
-        peak_ratio = Peak_ratio;
-
         ratio_flag.resize(g.n_server);
         for (i32 i = 0;i < ratio_flag.size();i++) ratio_flag[i] = 0;
 
