@@ -1,5 +1,11 @@
 *.zip
 
+.vscode
+
+# output
+output/
+solution.txt
+
 # data
 data/
 
