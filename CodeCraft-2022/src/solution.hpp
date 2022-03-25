@@ -133,6 +133,11 @@ public:
         solutions.emplace_back(sol);
     }
 
+    Solution get(i32 t) const
+    {
+        return solutions[t];
+    }
+
     tuple<u64, vector<Statistics>> evaluate(f32 quantile = Settings::quantile)
     {
         u64 cost = 0;
