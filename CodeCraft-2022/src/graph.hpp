@@ -32,7 +32,7 @@ private:
     vector<string> customer_ids;
 
 public:
-    Graph(string data_dir = "data")
+    Graph(string data_dir)
     {
         loadData(data_dir);
     }

@@ -28,6 +28,15 @@ struct Statistics
     }
 };
 
+void printStats(string msg, const vector<Statistics> &stats)
+{
+    std::cout << '\n'
+              << msg << '\n';
+    for (const auto &stat : stats)
+        std::cout << '\t' << stat;
+    std::cout << std::endl;
+}
+
 struct Solution
 {
     i32 n_customer;
