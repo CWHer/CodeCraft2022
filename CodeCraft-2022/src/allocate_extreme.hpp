@@ -9,176 +9,151 @@
 #include "graph.hpp"
 #include "solution.hpp"
 
-struct Allocation
+using namespace std;
+
+struct QueCmp
 {
-    i32 server;
-    i32 client;
-    i32 bandwidth;
+    bool operator()(tuple<i32, i32, i32> x, tuple<i32, i32, i32> y){
+        return std::get<2>(x) < std::get<2>(y);
+    }
 };
+
 
 class ExtremeAllocator
 {
 private:
+    // size = n_server 
+    vector<i32> ratio_flag;
+    // <time, server, band_request>
+    priority_queue<tuple<i32, i32, i32>,vector<tuple<i32,i32,i32>>,QueCmp> extreme_que;
+    // time * (server -> customer)
+    vector<vector<vector<i32>>> time_edge;
+    // customer -> server
+    vector<vector<i32>> inv_edges;
+    // time* { <server,customer,bandwidth> }
+    vector<vector<std::tuple<i32, i32, i32>>> extreme_tuple;
+
     // Get Solution
     Solutions solutions;
-    
+
     f32 peak_ratio;
     // requests[TimeNum][FringeNum]: 在 TimeNum 时刻对编号为 FringeNum 的边缘节点的带宽请求之和
     vector<vector<i32>> requests;
 
-    const Graph &g;
+    const Graph& g;
 
-    vector<unordered_set<i32>> conflicts;    // 每个边缘节点的冲突集合
-    vector<unordered_set<i32>> max_requests; // 每个边缘节点的 TOP 时刻集合
+    //  times x customers
+    vector<vector<i32>> demands;
 
 private:
-    void getExtreme()
-    {
-        i32 select_time = g.n_time * peak_ratio;
-        for (i32 i = 0; i < g.n_server; i++)
-        {
-            unordered_set<i32> times;
-            vector<pair<i32, i32>> fringes; // <bandwidth,time>
-            for (i32 j = 0; j < g.n_time; j++)
-                fringes.emplace_back(make_pair(requests[j][i], j));
-
-            std::sort(fringes.rbegin(), fringes.rend());
-            for (i32 k = 0; k < select_time; k++)
-                times.insert(fringes[k].second);
-
-            max_requests.emplace_back(times);
-        }
-    }
-
-    void allocate()
-    {
-        vector<i32> random_perm(g.n_time);
-        random_perm.reserve(g.n_time);
-        for (i32 i = 0; i < g.n_time; ++i)
-            random_perm[i] = i;
-        std::random_shuffle(random_perm.begin(), random_perm.end());
-
-        for (const auto &t : random_perm)
-        {
-            vector<i32> fringes;
-            unordered_map<i32, unordered_set<i32>> conflict;
-            for (i32 i = 0; i < g.n_server; i++)
-                if (max_requests[i].count(t) > 0)
-                    fringes.emplace_back(i);
-
-            for (u32 i = 0; i < fringes.size(); i++)
-                for (u32 j = 0; j < fringes.size(); j++)
-                    if (conflicts[fringes[i]].count(fringes[j]) > 0)
-                        conflict[fringes[i]].insert(fringes[j]);
-
-            unordered_set<i32> node_set;
-            while (!fringes.empty())
-            {
-                i32 max_index = 0;
-                f32 max_val = 0;
-                for (u32 i = 0; i < fringes.size(); i++)
-                {
-                    if (max_requests[fringes[i]].size() <= g.n_time * (peak_ratio - 0.05))
-                        continue;
-                    if (conflict[fringes[i]].size() == 0)
-                    {
-                        max_index = i;
-                        break;
-                    }
-                    if (float(max_requests[fringes[i]].size()) / conflict[fringes[i]].size() > max_val)
-                    {
-                        max_val = float(max_requests[fringes[i]].size() / conflict[fringes[i]].size());
-                        max_index = i;
-                    }
-                }
-                i32 node = fringes[max_index];
-                node_set.insert(node);
-                max_requests[node].erase(t);
-                // use average to balance
-                // if (nodeset.size() >= TmpFringe.size() * ratio) break;
-                auto iter = fringes.erase(fringes.begin() + max_index);
-                iter = fringes.begin();
-                while (iter != fringes.end())
-                {
-                    if (conflict[node].find(*iter) != conflict[node].end() || max_requests[*iter].size() <= g.n_time * (peak_ratio - 0.05))
-                    {
-                        iter = fringes.erase(iter);
-                    }
-                    else
-                        iter++;
-                }
+    void initQueue() {
+        for (i32 time = 0;time < requests.size();time++) {
+            for (i32 server = 0;server < requests[time].size();server++) {
+                extreme_que.push(std::make_tuple(time, server, requests[time][server]));
             }
-            result[t] = node_set;
         }
     }
 
-    void computeResult()
-    {
-        for (i32 time = 0; time < g.n_time; time++)
-        {
-            unordered_set<i32> current_set = result[time];
-            vector<Allocation> tmpset;
-            for (const auto &server : current_set)
-            {
-                i32 resband = g.capacities[server];
-                for (i32 client : g.edges[server])
-                {
-                    if (g.demands[time][client] <= resband)
-                    {
-                        resband -= g.demands[time][client];
-                        Allocation newnode = {server, client, g.demands[time][client]};
-                        tmpset.emplace_back(newnode);
-                    }
-                }
+    void popQueue() {
+        i32 total_select = 0;
+        // time * n_server
+        vector<vector<int>> dirty_update;
+        dirty_update.resize(g.n_time);
+        for (i32 i = 0;i < g.n_time;i++) {
+            dirty_update[i].resize(g.n_server);
+            for (i32 j = 0;j < g.n_server;j++) {
+                dirty_update[i][j] = 0;
             }
-            extreme_result.emplace_back(tmpset);
+        }
+        while (!extreme_que.empty()) {
+            if (total_select >= g.n_server * g.n_time * peak_ratio) break;
+            tuple<i32, i32, i32> node = extreme_que.top();
+            i32 server = std::get<1>(node);
+            i32 time = std::get<0>(node);
+            i32 band_request = std::get<2>(node);
+            extreme_que.pop();
+            if (dirty_update[time][server] > 0) {
+                dirty_update[time][server]--;
+                continue;
+            }
+            if (ratio_flag[server] >= g.n_time * peak_ratio) continue;
+            ratio_flag[server]++;
+            total_select++;
+            // compute alocation
+            i32 res_band = g.capacities[server];
+            for (i32 customer: time_edge[time][server]) {
+                if (res_band >= demands[time][customer]) {
+                    res_band -= demands[time][customer];
+                    extreme_tuple[time].emplace_back(make_tuple(server, customer, demands[time][customer]));
+                    // lazy priority_queue update
+                    for (i32 server_update : inv_edges[customer]) {
+                        if (server_update == server) continue;
+
+                        auto iter = std::remove(time_edge[time][server_update].begin(), time_edge[time][server_update].end(), customer);
+                        time_edge[time][server_update].erase(iter, time_edge[time][server_update].end());
+
+                        dirty_update[time][server_update]++;
+                        requests[time][server_update] -= demands[time][customer];
+                        extreme_que.push(make_tuple(time, server_update, requests[time][server_update]));
+                    }                    
+                }
+                else if (res_band > 0) {
+                    demands[time][customer] -= res_band;
+                    extreme_tuple[time].emplace_back(make_tuple(server, customer, res_band));
+                    // lazy priority_queue update
+                    for (i32 server_update : inv_edges[customer]) {
+                        if (server_update == server) continue;
+                        dirty_update[time][server_update]++;
+                        requests[time][server_update] -= res_band;
+                        extreme_que.push(make_tuple(time, server_update, requests[time][server_update]));
+                    }
+                    break;
+                }
+                else break;
+            }
+
         }
     }
 
-    void Turn2Solution() {
-        for (int time = 0;time < extreme_result.size();time++) {
+    void toSolution() {
+        for (i32 time = 0;time < g.n_time;time++) {
             Solution cursolution(g.n_customer);
-            for (int i = 0;i < extreme_result[time].size();i++) {
-                cursolution.add(make_tuple(extreme_result[time][i].client, extreme_result[time][i].server, 
-                extreme_result[time][i].bandwidth));
+            for (i32 i = 0;i < extreme_tuple[time].size();i++) {
+                tuple<i32, i32, i32> node = extreme_tuple[time][i];
+                cursolution.add(make_tuple(std::get<1>(node), std::get<0>(node), std::get<2>(node)));
             }
             solutions.add(cursolution);
         }
     }
 
 public:
-    // result[time] 为 time 时刻使得带宽请求拉满的边缘节点编号集合
-    vector<unordered_set<i32>> result;
-    // time * {<server,client,bandwidth>} 具体分配方式
-    vector<vector<Allocation>> extreme_result;
-
-    ExtremeAllocator(f32 peak_ratio, const Graph &g) : g(g)
+    ExtremeAllocator(f32 Peak_ratio, const Graph& g) : g(g),demands(g.demands)
     {
-        peak_ratio = peak_ratio;
+        peak_ratio = Peak_ratio;
 
-        result.resize(g.n_time);
-        conflicts.resize(g.n_server);
+        ratio_flag.resize(g.n_server);
+        for (i32 i = 0;i < ratio_flag.size();i++) ratio_flag[i] = 0;
 
-        // compute and initiate conflict
-        vector<vector<i32>> inv_edges;
+        extreme_tuple.resize(g.n_time);
+
+        inv_edges.resize(g.n_customer);
         for (i32 i = 0; i < g.n_server; i++)
-            for (const auto &v : g.edges[i])
+            for (const auto& v : g.edges[i])
                 inv_edges[v].push_back(i);
 
-        conflicts.resize(g.n_server);
-        for (i32 i = 0; i < g.n_server; i++)
-            for (const auto &v : g.edges[i])
-                for (const auto &u : inv_edges[v])
-                    conflicts[i].insert(u);
+        time_edge.resize(g.n_time);
+        for (i32 time = 0;time < g.n_time;time++) {
+            time_edge[time] = g.edges;
+        }
 
         // initiate requests
         for (i32 t = 0; t < g.n_time; t++)
         {
             vector<i32> request;
-            for (const auto &edge : g.edges)
+            for (const auto& edge : g.edges)
             {
                 i32 bandwidth = 0;
-                for (const auto &v : edge)
+                for (const auto& v : edge)
                     bandwidth += g.demands[t][v];
                 request.emplace_back(bandwidth);
             }
@@ -188,13 +163,13 @@ public:
 
     void run()
     {
-        getExtreme();
-        allocate();
-        computeResult();
-        Turn2Solution();
+        initQueue();
+        popQueue();
+        toSolution();
+        // debug
+        cout << "debug";
     }
 
-    // 获取类型为 Solutions 的极端请求分配结果
     Solutions GetSolution() {
         return this->solutions;
     }
