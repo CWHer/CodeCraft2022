@@ -84,17 +84,27 @@ public:
         f_in.close();
 
         // >>>> qos.csv
-        i32 k_server = 0;
         f_in.open(data_dir + "/qos.csv");
         printError(!f_in.is_open(), "file not found!");
         getline(f_in, line);
+        while (line.back() == '\r' || line.back() == '\n')
+            line.pop_back();
+        vector<string> names = readNames(line);
+        vector<i32> customer_indices(n_customer);
+        for (u32 i = 0; i < n_customer; ++i)
+            customer_indices[i] = std::find(customer_ids.begin(),
+                                            customer_ids.end(), names[i]) -
+                                  customer_ids.begin();
+
         while (getline(f_in, line))
         {
-            std::tie(std::ignore, arr) = readLine(line);
+            std::tie(name, arr) = readLine(line);
+            i32 k_server = std::find(server_ids.begin(),
+                                     server_ids.end(), name) -
+                           server_ids.begin();
             for (u32 i = 0; i < arr.size(); ++i)
                 if (arr[i] < QoS_lim)
-                    edges[k_server].emplace_back(i);
-            k_server++;
+                    edges[k_server].push_back(customer_indices[i]);
         }
         f_in.close();
     }
