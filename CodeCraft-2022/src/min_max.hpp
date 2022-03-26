@@ -129,6 +129,7 @@ public:
               .count(); };
 
         auto answer = getFeasibleSols(flow_g, n_time, capacities, partial_sol);
+        printError(!answer.first, "invalid partial solution.");
         last_solutions = std::move(answer.second);
         std::tie(last_cost, last_stats) = std::move(last_solutions.evaluate(1.0));
 

@@ -100,6 +100,7 @@ private:
                     continue;
 
                 demands[t][customer] -= allocation;
+                res_band -= allocation;
                 extreme_tuple[t].emplace_back(
                     make_tuple(customer, server, allocation));
                 // lazy priority_queue update
