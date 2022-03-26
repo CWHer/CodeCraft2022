@@ -9,7 +9,7 @@ int main()
     Graph g("./data");
     g.display();
     ExtremeAllocator allocator(
-        g, ExtremeAllocator::WeighType::average);
+        g, ExtremeAllocator::WeighType::sum);
     allocator.run();
     Solutions partial_sol = allocator.getSolution();
 
