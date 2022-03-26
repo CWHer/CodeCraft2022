@@ -149,7 +149,9 @@ public:
         {
             auto &e = edges[i];
             if (fixed_edges.count(e.v) > 0)
-                e.cap = e.ori_cap = std::max(0, e.cap - fixed_edges[e.v]);
+                // TODO
+                // e.cap = e.ori_cap = std::max(0, e.cap - fixed_edges[e.v]);
+                e.cap = e.ori_cap = 0;
         }
         // customer
         for (i32 i = 0; i < n_customer; ++i)

@@ -50,6 +50,8 @@ private:
 
     vector<u64> trajectory;
 
+    const Solutions &partial_sol;
+
 private:
     // void calcRegret()
     // {
@@ -84,7 +86,7 @@ private:
             return;
         }
 
-        auto answer = getFeasibleSols(flow_g, n_time, capacities);
+        auto answer = getFeasibleSols(flow_g, n_time, capacities, partial_sol);
 
         // no feasible solution
         if (!answer.first)
@@ -98,7 +100,7 @@ private:
         optimizers[k].update(capacities[k]);
 
         last_solutions = std::move(answer.second);
-        std::tie(last_cost, last_stats) = std::move(last_solutions.evaluate());
+        std::tie(last_cost, last_stats) = std::move(last_solutions.evaluate(1.0));
         trajectory.push_back(last_cost);
 
         if (last_cost < best_cost)
@@ -109,7 +111,9 @@ private:
     }
 
 public:
-    MinMax(Graph &g, FlowGraph &flow_g) : flow_g(flow_g)
+    MinMax(Graph &g, FlowGraph &flow_g,
+           const Solutions &partial_sol)
+        : flow_g(flow_g), partial_sol(partial_sol)
     {
         this->n_time = g.getTime();
         capacities = std::move(g.getCapacity());
@@ -124,9 +128,9 @@ public:
                      std::chrono::system_clock::now().time_since_epoch())
               .count(); };
 
-        auto answer = getFeasibleSols(flow_g, n_time, capacities);
+        auto answer = getFeasibleSols(flow_g, n_time, capacities, partial_sol);
         last_solutions = std::move(answer.second);
-        std::tie(last_cost, last_stats) = std::move(last_solutions.evaluate());
+        std::tie(last_cost, last_stats) = std::move(last_solutions.evaluate(1.0));
 
         // agressive optimization
         auto max_flow = std::max_element(

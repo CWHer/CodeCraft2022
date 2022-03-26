@@ -2,7 +2,7 @@
 #include "flow_graph.hpp"
 #include "dinic.hpp"
 #include "min_max.hpp"
-#include "allocate_extreme.hpp"
+#include "allocate_extreme_average.hpp"
 
 int main()
 {
@@ -18,8 +18,11 @@ int main()
     fg.display();
 
     // BUG: FIXME: this is error, do not include partial solution.
-    MinMax minmax_solver(g, fg);
+    MinMax minmax_solver(g, fg, partial_sol);
     auto solutions = minmax_solver.run();
+
+    solutions += partial_sol;
+    printStats("final solution:", std::get<1>(solutions.evaluate()));
 
     std::ofstream f_out("solution.txt");
     f_out << solutions;
