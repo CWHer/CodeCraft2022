@@ -126,32 +126,40 @@ public:
     }
 
     // NOTE: this operation is time-consuming
-    void fixPartialSol(const Solution &sol)
+    u64 fixPartialSol(const Solution &sol)
     {
+        static bool first_invoked = true;
         printWarning(
-            true, "fixPartialSol() is deprecated. Instead, change graph directly.");
+            first_invoked, "fixPartialSol() is time-consuming.");
+        first_invoked = false;
 
         // NOTE: new sol doesn't contain solution here
+        u64 fixed_demand = 0;
         unordered_map<i32, i32> fixed_edges;
         for (u32 i = 0; i < n_customer; ++i)
             for (const auto &flow : sol.solution[i])
             {
                 fixed_edges[serverNode(flow.first)] += flow.second;
                 fixed_edges[customerNode(i)] += flow.second;
+                fixed_demand += flow.second;
             }
 
+        // server
         for (i32 i = head[s_node]; ~i; i = edges[i].nxt)
         {
             auto &e = edges[i];
             if (fixed_edges.count(e.v) > 0)
-                e.cap = e.ori_cap -= fixed_edges[e.v];
+                e.cap = e.ori_cap = std::max(0, e.cap - fixed_edges[e.v]);
         }
+        // customer
         for (i32 i = 0; i < n_customer; ++i)
         {
             auto &e = edges[head[customerNode(i)]];
-            if (fixed_edges.count(e.v) > 0)
-                e.cap = e.ori_cap -= fixed_edges[e.v];
+            if (fixed_edges.count(customerNode(i)) > 0)
+                e.cap = e.ori_cap -= fixed_edges[customerNode(i)];
         }
+
+        return fixed_demand;
     }
 
     Solution getSolution()
