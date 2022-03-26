@@ -65,13 +65,11 @@ struct Solution
     }
 
     // NOTE: this operation is time-consuming
-    Solution operator+=(const Solution &rhs)
+    Solution &operator+=(const Solution &rhs)
     {
         printError(
             solution.size() != rhs.solution.size(),
             "size mismatch");
-
-        Solution result(n_customer);
 
         for (u32 i = 0; i < solution.size(); ++i)
         {
@@ -81,12 +79,13 @@ struct Solution
             for (const auto &flow : rhs.solution[i])
                 flows[flow.first] += flow.second;
 
-            result.solution[i].reserve(flows.size());
+            solution[i].clear();
+            solution[i].reserve(flows.size());
             for (const auto &flow : flows)
-                result.solution[i].push_back(flow);
+                solution[i].emplace_back(flow);
         }
 
-        return result;
+        return *this;
     }
 };
 
@@ -128,12 +127,19 @@ public:
         std::tie(this->server_ids, this->customer_ids) = std::move(ids);
     }
 
+    Solutions &operator+=(const Solutions &rhs)
+    {
+        for (u32 i = 0; i < solutions.size(); ++i)
+            solutions[i] += rhs.solutions[i];
+        return *this;
+    }
+
     void add(Solution &sol)
     {
         solutions.emplace_back(sol);
     }
 
-    Solution get(i32 t) const
+    const Solution &get(i32 t) const
     {
         return solutions[t];
     }
