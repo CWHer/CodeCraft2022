@@ -9,7 +9,7 @@ int main()
     Graph g("./data");
     g.display();
     ExtremeAllocator allocator(
-        g, ExtremeAllocator::WeighType::sum);
+        g, ExtremeAllocator::WeighType::average);
     allocator.run();
     Solutions partial_sol = allocator.getSolution();
 
@@ -19,7 +19,8 @@ int main()
     fg.display();
 
     // BUG: FIXME: this is error, do not include partial solution.
-    MinMax minmax_solver(g, fg, partial_sol);
+    MinMax minmax_solver(
+        g, fg, partial_sol, allocator.getCapacities());
     auto solutions = minmax_solver.run();
 
     solutions += partial_sol;

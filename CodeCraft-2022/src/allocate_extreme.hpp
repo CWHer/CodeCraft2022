@@ -36,6 +36,8 @@ private:
 
     // time * { <customer, server, bandwidth> }
     vector<vector<tuple<i32, i32, i32>>> extreme_tuple;
+    // capacity lower bound
+    vector<i32> capacities;
 
     // requests[TimeNum][FringeNum]: 在 TimeNum 时刻对编号为 FringeNum 的边缘节点的带宽请求之和
     vector<vector<i32>> requests;
@@ -50,6 +52,8 @@ private:
         for (u32 t = 0; t < g.n_time; t++)
             for (u32 i = 0; i < g.n_server; i++)
                 extreme_que.emplace(make_tuple(requests[t][i], t, i));
+                // extreme_que.emplace(
+                //     make_tuple(std::min(requests[t][i], g.capacities[i]), t, i));
     }
 
     void toSolution()
@@ -75,8 +79,8 @@ private:
         while (!extreme_que.empty() &&
                total_selected < g.n_server * max_selected)
         {
-            i32 t, server;
-            std::tie(std::ignore, t, server) = extreme_que.top();
+            i32 capacity, t, server;
+            std::tie(capacity, t, server) = extreme_que.top();
             extreme_que.pop();
 
             // ignore lazy data
@@ -90,6 +94,7 @@ private:
                 continue;
 
             total_selected++;
+            capacities[server] = std::min(capacity, g.capacities[server]);
             // compute allocation
             i32 res_band = g.capacities[server];
             for (const auto &customer : time_edge[t][server])
@@ -126,6 +131,7 @@ public:
         : g(g), demands(g.demands), weigh_type(weigh_type),
           solutions(make_tuple(g.server_ids, g.customer_ids))
     {
+        capacities.resize(g.n_server, 0);
         max_selected = std::floor(g.n_time * (1 - Settings::quantile));
         selected_num.resize(g.n_server, 0);
         time_edge.resize(g.n_time, g.edges);
@@ -163,6 +169,8 @@ public:
     }
 
     Solutions getSolution() { return solutions; }
+
+    vector<i32> getCapacities() { return capacities; }
 };
 
 #endif

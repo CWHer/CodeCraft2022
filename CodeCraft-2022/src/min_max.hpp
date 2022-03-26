@@ -112,13 +112,16 @@ private:
 
 public:
     MinMax(Graph &g, FlowGraph &flow_g,
-           const Solutions &partial_sol)
+           const Solutions &partial_sol, const vector<i32> &capcities)
         : flow_g(flow_g), partial_sol(partial_sol)
     {
         this->n_time = g.getTime();
-        capacities = std::move(g.getCapacity());
+        this->capacities = std::move(capcities);
         last_stats.resize(capacities.size());
         best_cost = std::numeric_limits<u64>::max();
+        optimizers.reserve(capacities.size());
+        for (u32 i = 0; i < capacities.size(); ++i)
+            optimizers.emplace_back(Optimizer(capacities[i]));
     }
 
     Solutions run(f64 run_time = 275)
@@ -132,23 +135,6 @@ public:
         printError(!answer.first, "invalid partial solution.");
         last_solutions = std::move(answer.second);
         std::tie(last_cost, last_stats) = std::move(last_solutions.evaluate(1.0));
-
-        // agressive optimization
-        auto max_flow = std::max_element(
-                            last_stats.begin(), last_stats.end(),
-                            [](const auto &lhs, const auto &rhs)
-                            { return lhs.max < rhs.max; })
-                            ->max;
-        optimizers.reserve(capacities.size());
-        for (u32 i = 0; i < capacities.size(); ++i)
-        {
-            capacities[i] = std::min(capacities[i], 2 * max_flow);
-            optimizers.emplace_back(Optimizer(capacities[i]));
-        }
-
-        // i32 max_cost = *std::max_element(
-        //     last_costs.begin(), last_costs.end());
-        // std::fill(capacities.begin(), capacities.end(), max_cost);
 
         f64 start_time = getTime();
         i32 cnt = 0, k;
@@ -168,7 +154,7 @@ public:
             } while (capacities[k] < optimizers[k].delta);
             step(k);
             std::cerr << "\rSearch Times: " << ++cnt << std::flush;
-        } while (start_time + run_time > getTime() && cnt < 2000);
+        } while (start_time + run_time > getTime() && cnt < 5000);
 
         display();
         return best_solutions;
