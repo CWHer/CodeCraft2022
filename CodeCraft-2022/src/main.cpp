@@ -2,13 +2,14 @@
 #include "flow_graph.hpp"
 #include "dinic.hpp"
 #include "min_max.hpp"
-#include "allocate_extreme_average.hpp"
+#include "allocate_extreme.hpp"
 
 int main()
 {
     Graph g("./data");
     g.display();
-    ExtremeAllocator allocator(g);
+    ExtremeAllocator allocator(
+        g, ExtremeAllocator::WeighType::average);
     allocator.run();
     Solutions partial_sol = allocator.getSolution();
 
