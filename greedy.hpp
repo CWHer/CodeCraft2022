@@ -116,11 +116,12 @@ public:
     }
 
     // use reward to update average strategy
-    Solutions run(FlowGraph &g, const vector<i32> &capacities, const Solutions &partial_sol)
+    vector<int> run(FlowGraph &g, const vector<i32> &capacities, const Solutions &partial_sol)
     {
         // set capacity
         g.changeCapacity(capacities);
         initWeight(partial_sol);
+        vector<int> max_flow(n_server, 0);
         //outputFilter(partial_sol);
 
         iter_num = 1;
@@ -139,7 +140,7 @@ public:
                 // find feasible solution at time t
                 auto demand_sum = g.changeDemand(t);
                 auto current_solution = partial_sol.get(t);
-                auto solution_pair = g.getGreedySol(costs, valid_time, weights, current_solution);
+                auto solution_pair = g.getGreedySol(costs, valid_time, weights, current_solution, max_flow);
                 if(!solution_pair.first){
                     std::cout<<"Unavailable Solution"<<std::endl;
                 }
@@ -155,9 +156,9 @@ public:
 
             //return
             //if(iter == iter_num-1)
-            return solutions;
+            return max_flow;
         }
-        return Solutions(g.getNames());
+        return max_flow;
     }
 
 };

@@ -176,7 +176,7 @@ public:
 
 
     pair<bool, Solution> getGreedySol(vector<vector<int>> &costs, int valid_time, 
-            const vector<vector<double>> &weights, const Solution &partial_sol){
+            const vector<vector<double>> &weights, const Solution &partial_sol, vector<int> &max_flow){
         
         Solution solution(n_customer);
         vector<int> cur_demands(demands[t]);
@@ -224,6 +224,8 @@ public:
                     cur_flow = pr.first;
                 unfinished -= cur_flow;
                 remained_capacity[pr.second] -= cur_flow;
+                if(cur_flow>max_flow[pr.second])
+                    max_flow[pr.second] = cur_flow;
 
                 solution.add(make_tuple(i - 1, pr.second, cur_flow)); // add into solutions
                 costs[t][pr.second] += cur_flow; //update costs
@@ -234,6 +236,8 @@ public:
                 remained_capacity[available.back().second] -= unfinished;
                 solution.add(make_tuple(i - 1, available.back().second, unfinished));
                 costs[t][available.back().second] += unfinished;
+                if(unfinished > max_flow[available.back().second])
+                    max_flow[available.back().second] = unfinished;
             }
             else
             {
