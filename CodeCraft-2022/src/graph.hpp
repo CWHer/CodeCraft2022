@@ -4,13 +4,8 @@
 #include "common.h"
 #include "utils.hpp"
 
-class FlowGraph;
-
-// NOTE: DO NOT use Graph,
-//  once it is used to construct FlowGraph
 class Graph
 {
-    friend class FlowGraph;
     friend class ExtremeAllocator;
 
 private:
@@ -21,8 +16,8 @@ private:
     vector<i32> capacities;
 
     // demand of customer nodes
-    //  times x customers
-    vector<vector<i32>> demands;
+    //  times x customers x streams
+    vector<vector<vector<pair<string, i32>>>> demands;
 
     // edges: adjacent table
     //  server -> customer
