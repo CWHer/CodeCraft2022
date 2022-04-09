@@ -21,14 +21,33 @@ tuple<string, vector<i32>> readLine(const string &line)
     return make_tuple(name, arr);
 }
 
-vector<string> readNames(const string &line)
+tuple<string, string, vector<i32>> readDemand(const string &line)
+{
+    i32 x;
+    string time, name;
+    vector<i32> arr;
+    const u32 ignore_num = 100;
+
+    std::istringstream s_in(line);
+    getline(s_in, time, ',');
+    getline(s_in, name, ',');
+    while (s_in >> x)
+    {
+        arr.emplace_back(x);
+        s_in.ignore(ignore_num, ',');
+    }
+    return make_tuple(time, name, arr);
+}
+
+vector<string> readNames(const string &line, i32 k = 1)
 {
     const u32 ignore_num = 100;
     string name;
     vector<string> names;
 
     std::istringstream s_in(line);
-    s_in.ignore(ignore_num, ',');
+    while (k--)
+        s_in.ignore(ignore_num, ',');
     while (getline(s_in, name, ','))
         names.emplace_back(name);
 

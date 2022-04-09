@@ -6,8 +6,6 @@
 
 class Graph
 {
-    friend class ExtremeAllocator;
-
 private:
     u32 n_time, n_server, n_customer;
 
@@ -68,14 +66,27 @@ public:
         getline(f_in, line);
         while (line.back() == '\r' || line.back() == '\n')
             line.pop_back();
-        customer_ids = std::move(readNames(line));
+        customer_ids = std::move(readNames(line, 2));
+        n_customer = customer_ids.size();
+
+        string last_time, current_time;
         while (getline(f_in, line))
         {
-            std::tie(std::ignore, arr) = readLine(line);
-            demands.emplace_back(arr);
+            std::tie(current_time, name, arr) = readDemand(line);
+
+            if (last_time != current_time)
+            {
+                vector<vector<pair<string, i32>>> demand;
+                for (u32 i = 0; i < n_customer; ++i)
+                    demand.emplace_back(vector<pair<string, i32>>());
+                demands.emplace_back(demand);
+                last_time = current_time;
+            }
+            for (u32 i = 0; i < n_customer; ++i)
+                if (arr[i] > 0)
+                    demands.back()[i].emplace_back(make_pair(name, arr[i]));
         }
         n_time = demands.size();
-        n_customer = demands.front().size();
         f_in.close();
 
         // >>>> qos.csv
