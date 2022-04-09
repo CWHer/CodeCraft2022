@@ -2,32 +2,23 @@
 #include "flow_graph.hpp"
 #include "dinic.hpp"
 #include "min_max.hpp"
+#include "allocate_extreme.hpp"
+#include "greedy.hpp"
 
 int main()
 {
-    Graph g("data");
-    g.display();
-    FlowGraph flow_g(g);
-    flow_g.display();
-    Dinic solver(flow_g);
+    Graph g("./data");
+    ExtremeAllocator allocator(
+        g, ExtremeAllocator::WeighType::sum);
+    allocator.run();
+    Solutions partial_sol = allocator.getSolution();
 
-    // >>> feasible solution
-    // auto answer = getFeasibleSol(
-    //     flow_g, g.getTime(), g.getCapacity());
-    // printError(!answer.first, "no solution");
+    FlowGraph fg(g);
 
-    // auto result = std::move(answer.second.evaluate());
-    // std::cout << "cost: " << result.first << std::endl;
+    Greedy greedy_solver(fg, g.getTime());
+    auto max_flow = greedy_solver.run(fg, g.getCapacity(), partial_sol);
 
-    // std::ofstream f_out("solution.txt");
-    // f_out << answer.second;
-    // f_out.close();
-    // <<< feasible solution
-
-    MinMax minmax_solver(g, flow_g);
-    auto solutions = minmax_solver.run();
-
-    std::ofstream f_out("solution.txt");
+    std::ofstream f_out("/output/solution.txt");
     f_out << solutions;
     f_out.close();
 

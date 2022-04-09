@@ -10,6 +10,7 @@ class Dinic;
 class FlowGraph
 {
     friend class Dinic;
+    friend class Greedy;
 
 private:
     i32 t; // current timestep
@@ -128,6 +129,9 @@ public:
     // NOTE: this operation is time-consuming
     void fixPartialSol(const Solution &sol)
     {
+        printWarning(
+            true, "fixPartialSol() is deprecated. Instead, change graph directly.");
+
         // NOTE: new sol doesn't contain solution here
         unordered_map<i32, i32> fixed_edges;
         for (u32 i = 0; i < n_customer; ++i)
@@ -163,6 +167,85 @@ public:
                     solution.add(make_tuple(i - 1, e.v - 1, e.cap));
             }
         return solution;
+    }
+
+    static bool cmpGreedy(const pair<int,int> &p1, const pair<int,int> &p2)
+    {
+        return p1.first < p2.first;
+    }
+
+
+    pair<bool, Solution> getGreedySol(vector<vector<int>> &costs, int valid_time, 
+            const vector<vector<double>> &weights, const Solution &partial_sol, vector<int> &max_flow){
+        
+        Solution solution(n_customer);
+        vector<int> cur_demands(demands[t]);
+        vector<int> remained_capacity(n_server, 0);
+        vector<pair<int, int>> available;
+
+        // calculate remained capacity for all servers
+        for (i32 j = head[s_node]; ~j; j = edges[j].nxt){
+            Edge *e = &(edges[j]);
+            remained_capacity[e->v-1] = e->ori_cap;
+        }
+
+        // preallocate based on AllocateExtreme
+        for(int i=0;i<n_customer;++i)
+            for(const auto &flow:partial_sol.solution[i])
+            {
+                cur_demands[i] -= flow.second;
+                solution.add(make_tuple(i, flow.first, flow.second));
+            }
+
+        // allocate requirements for each customer
+        for (i32 i = 1; i <= n_customer; ++i){
+            available.clear();
+            //get all available servers for customer i(add into 'available')
+            double total_weight = 0;
+            for (i32 j = head[i + n_server]; ~j; j = edges[j].nxt){
+                const Edge &e = edges[j];
+                if(e.v<n_server&&weights[t][e.v-1]>0&&remained_capacity[e.v-1]>0)
+                {
+                    available.emplace_back(remained_capacity[e.v-1], e.v-1);
+                    total_weight += weights[t][e.v-1]; 
+                }
+            }
+            int unfinished = cur_demands[i-1];
+            if(available.empty()||unfinished==0)
+                continue;
+            //sort
+            sort(available.begin(), available.end(), cmpGreedy);
+            //add edges
+            for(int j = 0; j < available.size() - 1;++j) 
+            {
+                auto &pr = available[j];
+                int cur_flow = unfinished/(available.size() - j);
+                if(pr.first<cur_flow)
+                    cur_flow = pr.first;
+                unfinished -= cur_flow;
+                remained_capacity[pr.second] -= cur_flow;
+                if(cur_flow>max_flow[pr.second])
+                    max_flow[pr.second] = cur_flow;
+
+                solution.add(make_tuple(i - 1, pr.second, cur_flow)); // add into solutions
+                costs[t][pr.second] += cur_flow; //update costs
+            }
+
+            if(unfinished<=available.back().first)
+            {
+                remained_capacity[available.back().second] -= unfinished;
+                solution.add(make_tuple(i - 1, available.back().second, unfinished));
+                costs[t][available.back().second] += unfinished;
+                if(unfinished > max_flow[available.back().second])
+                    max_flow[available.back().second] = unfinished;
+            }
+            else
+            {
+                std::cout<<"Infeasible solution!"<<std::endl;
+            }
+        }
+        
+        return make_pair(true, solution);        
     }
 
     // DEBUG function
