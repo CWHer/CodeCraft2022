@@ -34,6 +34,10 @@ class Solutions
     friend std::ostream &operator<<(
         std::ostream &out, const Solutions &sol)
     {
+        i32 n_special = 10;
+        for (u32 i = 1; i <= n_special; ++i)
+            out << sol.server_ids[i] << (i == n_special ? '\n' : ',');
+
         auto format = [&](i32 k, const vector<string> &names, bool add_sep)
         {
             string answer = (add_sep ? ",<" : "<") + sol.server_ids[k];
