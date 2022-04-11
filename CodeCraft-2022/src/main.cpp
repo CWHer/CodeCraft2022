@@ -3,13 +3,14 @@
 #include "dinic.hpp"
 #include "min_max.hpp"
 #include "allocate_extreme.hpp"
+#include "greedy.hpp"
 
 int main()
 {
-    Graph g("./data");
+    Graph g("/data");
     g.display();
     ExtremeAllocator allocator(
-        g, ExtremeAllocator::WeighType::average);
+        g, ExtremeAllocator::WeighType::sum);
     allocator.run();
     Solutions partial_sol = allocator.getSolution();
 
@@ -18,15 +19,17 @@ int main()
     FlowGraph fg(g);
     fg.display();
 
-    // BUG: FIXME: this is error, do not include partial solution.
+    Greedy greedy_solver(fg, g.getTime());
+    auto max_flow = greedy_solver.run(fg, g.getCapacity(), partial_sol);
+
     MinMax minmax_solver(
-        g, fg, partial_sol, allocator.getCapacities());
+        g, fg, partial_sol, max_flow);
     auto solutions = minmax_solver.run();
 
     solutions += partial_sol;
     printStats("final solution:", std::get<1>(solutions.evaluate()));
 
-    std::ofstream f_out("solution.txt");
+    std::ofstream f_out("/output/solution.txt");
     f_out << solutions;
     f_out.close();
 

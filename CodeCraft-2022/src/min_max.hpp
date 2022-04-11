@@ -100,7 +100,7 @@ private:
         optimizers[k].update(capacities[k]);
 
         last_solutions = std::move(answer.second);
-        std::tie(last_cost, last_stats) = std::move(last_solutions.evaluate(1.0));
+        std::tie(last_cost, last_stats, std::ignore) = std::move(last_solutions.evaluate(1.0));
         trajectory.push_back(last_cost);
 
         if (last_cost < best_cost)
@@ -124,7 +124,7 @@ public:
             optimizers.emplace_back(Optimizer(capacities[i]));
     }
 
-    Solutions run(f64 run_time = 275)
+    Solutions run(f64 run_time = 295)
     {
         auto getTime = []
         { return std::chrono::duration_cast<std::chrono::seconds>(
@@ -134,7 +134,7 @@ public:
         auto answer = getFeasibleSols(flow_g, n_time, capacities, partial_sol);
         printError(!answer.first, "invalid partial solution.");
         last_solutions = std::move(answer.second);
-        std::tie(last_cost, last_stats) = std::move(last_solutions.evaluate(1.0));
+        std::tie(last_cost, last_stats, std::ignore) = std::move(last_solutions.evaluate(1.0));
 
         f64 start_time = getTime();
         i32 cnt = 0, k;
