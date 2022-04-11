@@ -7,7 +7,7 @@
 #include "solution.hpp"
 #include "settings.h"
 
-// use local search to minimize maximal bandwith
+// use local search to minimize maximal bandwidth
 class MinMax
 {
 private:
