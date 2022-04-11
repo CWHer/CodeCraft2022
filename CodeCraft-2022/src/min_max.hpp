@@ -13,27 +13,44 @@ class MinMax
 private:
     struct Optimizer
     {
-        i32 delta, min_delta;
+        // NOTE: reduce the bound until a certain
+        //  proportion of data is above the bound
 
-        Optimizer(i32 cap)
+        f32 epsilon;
+        i32 fail_cnt, last_cap;
+
+        Optimizer()
         {
-            delta = std::min(
-                Settings::init_delta, (i32)(cap * Settings::init_delta_factor));
-            min_delta = std::max(
-                Settings::min_delta, (i32)(cap * Settings::min_delta_factor));
+            fail_cnt = 0;
+            epsilon = Settings::init_proportion;
         }
 
-        void reduce()
+        bool isEnd() { return fail_cnt > Settings::fail_threshold; }
+
+        // not feasible
+        i32 reduce()
         {
-            delta *= Settings::discounting_factor;
-            delta = std::max(delta, min_delta);
+            fail_cnt++;
+            epsilon *= Settings::discounting_factor;
+            epsilon = std::max(Settings::min_epsilon, epsilon);
+            return last_cap;
         }
 
-        void update(i32 cap)
+        // feasible
+        void step()
         {
-            delta = std::min(
-                delta, (i32)(cap * Settings::init_delta_factor));
-            delta = std::max(delta, min_delta);
+            fail_cnt = 0;
+            epsilon *= Settings::step_factor;
+            epsilon = std::min(Settings::max_epsilon, epsilon);
+        }
+
+        i32 operator()(i32 cap, vector<i32> &flow)
+        {
+            last_cap = cap;
+            i32 k_idx = flow.size() * (1 - epsilon);
+            auto k_large = flow.begin() + k_idx;
+            std::nth_element(flow.begin(), k_large, flow.end());
+            return *k_large;
         }
     };
 
@@ -46,6 +63,7 @@ private:
 
     Solutions best_solutions, last_solutions;
     vector<Statistics> last_stats;
+    vector<vector<i32>> last_flows;
     u64 last_cost, best_cost;
 
     vector<u64> trajectory;
@@ -53,54 +71,31 @@ private:
     const Solutions &partial_sol;
 
 private:
-    // void calcRegret()
-    // {
-    //     std::fill(
-    //         last_max_flow.begin(), last_max_flow.end(),
-    //         std::numeric_limits<i32>::min());
-    //     std::fill(last_regrets.begin(), last_regrets.end(), 0);
-
-    //     for (u32 i = 0; i < last_flows.size(); ++i)
-    //     {
-    //         for (const auto &flow : last_flows[i])
-    //         {
-    //             last_regrets[i] -= flow;
-    //             last_max_flow[i] = std::max(last_max_flow[i], flow);
-    //         }
-    //         last_regrets[i] += (i64)last_max_flow[i] * last_flows[i].size();
-    //     }
-    // }
-
     void step(i32 k)
     {
-        // TODO
-        //  1. coordinate descent (i.e. find out min{capacity[k]})
-        //  2. Linear programming
-        capacities[k] -= optimizers[k].delta;
-        // capacities[k] = last_costs[k] / 2;
+        capacities[k] = optimizers[k](capacities[k], last_flows[k]);
 
         // DO NOT change solution
         if (capacities[k] >= last_stats[k].max)
         {
-            optimizers[k].update(capacities[k]);
+            optimizers[k].step();
             return;
         }
 
-        auto answer = getFeasibleSols(flow_g, n_time, capacities, partial_sol);
+        auto answer = getFeasibleSols(
+            flow_g, n_time, capacities, partial_sol);
 
         // no feasible solution
         if (!answer.first)
         {
-            capacities[k] += optimizers[k].delta;
-            optimizers[k].reduce();
+            capacities[k] = optimizers[k].reduce();
             trajectory.push_back(std::numeric_limits<u64>::max());
             return;
         }
 
-        optimizers[k].update(capacities[k]);
-
+        optimizers[k].step();
         last_solutions = std::move(answer.second);
-        std::tie(last_cost, last_stats) = std::move(last_solutions.evaluate(1.0));
+        std::tie(last_cost, last_stats, last_flows) = std::move(last_solutions.evaluate(1.0));
         trajectory.push_back(last_cost);
 
         if (last_cost < best_cost)
@@ -121,10 +116,10 @@ public:
         best_cost = std::numeric_limits<u64>::max();
         optimizers.reserve(capacities.size());
         for (u32 i = 0; i < capacities.size(); ++i)
-            optimizers.emplace_back(Optimizer(capacities[i]));
+            optimizers.emplace_back(Optimizer());
     }
 
-    Solutions run(f64 run_time = 275)
+    Solutions run(f64 run_time = 295)
     {
         auto getTime = []
         { return std::chrono::duration_cast<std::chrono::seconds>(
@@ -134,10 +129,33 @@ public:
         auto answer = getFeasibleSols(flow_g, n_time, capacities, partial_sol);
         printError(!answer.first, "invalid partial solution.");
         last_solutions = std::move(answer.second);
-        std::tie(last_cost, last_stats) = std::move(last_solutions.evaluate(1.0));
+        std::tie(last_cost, last_stats, last_flows) = std::move(last_solutions.evaluate(1.0));
 
         f64 start_time = getTime();
         i32 cnt = 0, k;
+        // std::priority_queue<pair<i32, i32>> cands;
+        // for (u32 i = 0; i < last_stats.size(); ++i)
+        //     cands.emplace(make_pair(last_stats[i].regret, i));
+
+        // while (!cands.empty() && cnt < 2000 &&
+        //        start_time + run_time > getTime())
+        // {
+        //     k = cands.top().second;
+        //     cands.pop();
+
+        //     step(k);
+        //     std::cerr << "\rSearch Times: " << ++cnt << std::flush;
+        //     display();
+        //     if (cnt > 10)
+        //     {
+        //         printInfo("1");
+        //     }
+
+        //     for (u32 i = 0; i < last_stats.size(); ++i)
+        //         if (!optimizers[i].isEnd())
+        //             cands.emplace(make_pair(last_stats[i].regret, i));
+        // }
+
         do
         {
             do
@@ -146,15 +164,15 @@ public:
                 last_regrets.reserve(last_stats.size());
                 for (const auto &stat : last_stats)
                     last_regrets.push_back(stat.regret);
-                // TODO: choose max regret
+
                 k = randomChoice<i64>(last_regrets);
                 // k = randomInt(0, capacities.size() - 1);
                 // k = randomChoice<u32>(last_costs);
                 // k = std::max_element(last_costs.begin(), last_costs.end()) - last_costs.begin();
-            } while (capacities[k] < optimizers[k].delta);
+            } while (optimizers[k].isEnd());
             step(k);
             std::cerr << "\rSearch Times: " << ++cnt << std::flush;
-        } while (start_time + run_time > getTime() && cnt < 5000);
+        } while (start_time + run_time > getTime());
 
         display();
         return best_solutions;

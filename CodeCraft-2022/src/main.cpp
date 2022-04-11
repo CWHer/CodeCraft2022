@@ -6,10 +6,10 @@
 
 int main()
 {
-    Graph g("./data");
+    Graph g("/data");
     g.display();
     ExtremeAllocator allocator(
-        g, ExtremeAllocator::WeighType::average);
+        g, ExtremeAllocator::WeighType::sum);
     allocator.run();
     Solutions partial_sol = allocator.getSolution();
 
@@ -26,7 +26,7 @@ int main()
     solutions += partial_sol;
     printStats("final solution:", std::get<1>(solutions.evaluate()));
 
-    std::ofstream f_out("solution.txt");
+    std::ofstream f_out("/output/solution.txt");
     f_out << solutions;
     f_out.close();
 

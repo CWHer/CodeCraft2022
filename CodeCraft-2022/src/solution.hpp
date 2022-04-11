@@ -144,7 +144,8 @@ public:
         return solutions[t];
     }
 
-    tuple<u64, vector<Statistics>> evaluate(f32 quantile = Settings::quantile)
+    tuple<u64, vector<Statistics>, vector<vector<i32>>>
+    evaluate(f32 quantile = Settings::quantile)
     {
         u64 cost = 0;
         vector<Statistics> stats(server_ids.size());
@@ -176,7 +177,7 @@ public:
         }
 
         // NOTE: 0-based vector
-        int k_idx = std::ceil(solutions.size() * quantile) - 1;
+        i32 k_idx = std::ceil(solutions.size() * quantile) - 1;
         for (u32 i = 0; i < flows.size(); ++i)
         {
             auto k_large = flows[i].begin() + k_idx;
@@ -184,7 +185,7 @@ public:
             cost += stats[i].cost = *k_large;
         }
 
-        return make_tuple(cost, stats);
+        return make_tuple(cost, stats, flows);
     }
 };
 

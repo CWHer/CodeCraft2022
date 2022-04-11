@@ -52,8 +52,8 @@ private:
         for (u32 t = 0; t < g.n_time; t++)
             for (u32 i = 0; i < g.n_server; i++)
                 extreme_que.emplace(make_tuple(requests[t][i], t, i));
-                // extreme_que.emplace(
-                //     make_tuple(std::min(requests[t][i], g.capacities[i]), t, i));
+        // extreme_que.emplace(
+        // make_tuple(std::min(requests[t][i], g.capacities[i]), t, i));
     }
 
     void toSolution()
